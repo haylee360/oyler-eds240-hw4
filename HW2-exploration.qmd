@@ -1,5 +1,5 @@
 ---
-title: "your HW #2 title"
+title: "Preliminary Exploration of the Gender Bias in Academic Publishing"
 author: "Haylee Oyler"
 date: 2025-02-04
 format:
@@ -11,18 +11,47 @@ execute:
 ---
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Load Libraries"
+
+
 library(tidyverse)
 library(here)
 library(janitor)
+library(readxl)
+```
+
+## Data Exploration 
+```{r}
+# Read in data
+author_stats = read_xlsx(here("data", "authors.xlsx"), sheet = 1) %>% 
+  clean_names()
+
+# View the df
+head(author_stats)
 ```
 
 ```{r}
-# Read in data
-
-
-
-
+# How large is the data frame?
+dim(author_stats)
 ```
+
+
+```{r}
+# What academic fields does the data contain?
+unique(author_stats$subject_area_or_subfield)
+```
+```{r}
+# How many countries does the data contain?
+length(unique(author_stats$country))
+```
+
+```{r}
+# The data is divided into two unique time periods
+unique(author_stats$period)
+```
+
+## Exploratory Visualization
 
 Create at least three exploratory data visualizations (but of course feel free to create more!). The goal of these visualizations is to explore your data for any potentially interesting patterns or trends, which you or may not decide to pursue further as you iterate on your final project deliverable. These plots do not need to be polished (e.g. updated theme), but it may be helpful to try arranging data to identify any trends.
 
