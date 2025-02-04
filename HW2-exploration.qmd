@@ -19,6 +19,7 @@ library(tidyverse)
 library(here)
 library(janitor)
 library(readxl)
+library(patchwork)
 ```
 
 ## Data Exploration 
@@ -42,6 +43,12 @@ dim(author_stats)
 unique(author_stats$subject_area_or_subfield)
 ```
 ```{r}
+env_fields <- list("Agricultural Sciences", "Earth and Planetary Sciences", "Energy", "Environmental Science", "Computer Science", "Cellular and Molecular Biology")
+```
+
+
+
+```{r}
 # How many countries does the data contain?
 length(unique(author_stats$country))
 ```
@@ -57,7 +64,124 @@ Create at least three exploratory data visualizations (but of course feel free t
 
 
 ```{r}
+# Filter data into the two different time periods
 
+# Older data
+author_old <- author_stats %>% 
+  filter(period == "1999-2003")
+
+old_sum <- author_old %>% 
+  group_by(gender) %>% 
+  summarise(gender_authors = sum(authors)) %>% 
+  ungroup() %>% 
+  mutate(total_authors = sum(gender_authors), 
+         percent_pub = gender_authors/total_authors)
+
+# More recent data
+author_new <- author_stats %>% 
+  filter(period == "2014-2018")
+
+new_sum <- author_new %>% 
+  group_by(gender) %>% 
+  summarise(gender_authors = sum(authors)) %>% 
+  ungroup() %>% 
+  mutate(total_authors = sum(gender_authors), 
+         percent_pub = gender_authors/total_authors)
+```
+
+### Pie chart of total publications by gender
+```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+old_pie <- ggplot(old_sum, aes(x = "", y = percent_pub, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = scales::percent(percent_pub, accuracy = 1)), 
+            position = position_stack(vjust = 0.5),  
+            color = "white", size = 5) +  
+  scale_fill_brewer(palette = "Dark2") +  
+  theme_void() +  
+  labs(title = "Publications by Gender (1993-2003)",
+       fill = "Gender") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "right"
+  )
+
+new_pie <- ggplot(new_sum, aes(x = "", y = percent_pub, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = scales::percent(percent_pub, accuracy = 1)), 
+            position = position_stack(vjust = 0.5),  
+            color = "white", size = 5) +  
+  scale_fill_brewer(palette = "Dark2") +  
+  theme_void() +  
+  labs(title = "Publications by Gender (2014-2018)",
+       fill = "Gender") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "right"
+  )
+
+old_pie + new_pie
+
+```
+
+
+```{r}
+ggplot(author_stats, aes(x = fct_reorder(country, authors), 
+                         y = authors, 
+                         fill = gender)) +
+  geom_col(position = "dodge", show.legend = TRUE) +  
+  coord_flip() +  
+  scale_fill_brewer(palette = "Dark2") +
+  labs(title = "Number of Academic Authors by Gender and Country",
+      x = "Country",
+      y = "Number of Authors",
+      fill = "Gender") +
+  theme_minimal() 
+```
+```{r}
+fields <- author_stats %>% 
+  group_by(subject_area_or_subfield, gender) %>% 
+  summarise(field_gender = sum(authors)) %>% 
+  mutate(total_authors = sum(field_gender),
+         percent_field = field_gender/total_authors)
+
+fields_wide <- fields %>%
+  pivot_wider(
+    id_cols = c(subject_area_or_subfield, total_authors),
+    names_from = gender,
+    values_from = c(field_gender, percent_field),
+    names_prefix = ""
+  ) %>%
+  group_by(subject_area_or_subfield) %>%
+  mutate(total_authors = first(total_authors)) %>%
+  ungroup() %>% 
+  filter(subject_area_or_subfield != "ALL")
+
+
+```
+
+
+```{r}
+ggplot(fields_wide) +
+  geom_linerange(aes(y = subject_area_or_subfield,
+                     xmin = field_gender_women, 
+                     xmax = field_gender_men)) +
+  geom_point(aes(x = field_gender_women, 
+                 y = subject_area_or_subfield, 
+                 color = "Women"), size = 2.5) +
+  geom_point(aes(x = field_gender_men, 
+                 y = subject_area_or_subfield, 
+                 color = "Men"),
+             size = 2.5) +
+  scale_color_manual(values = c("Women" = "violet", "Men" = "#6A1E99")) + 
+  labs(title = "Academic Publications by Gender Across Different Disciplines",
+      x = "Number of Publications",
+      y = "Subject Area/Subfield",
+      color = "Gender") +
+  theme_minimal() 
 ```
 
 
