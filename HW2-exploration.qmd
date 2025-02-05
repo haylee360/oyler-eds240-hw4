@@ -42,11 +42,6 @@ dim(author_stats)
 # What academic fields does the data contain?
 unique(author_stats$subject_area_or_subfield)
 ```
-```{r}
-env_fields <- list("Agricultural Sciences", "Earth and Planetary Sciences", "Energy", "Environmental Science", "Computer Science", "Cellular and Molecular Biology")
-```
-
-
 
 ```{r}
 # How many countries does the data contain?
@@ -70,6 +65,7 @@ Create at least three exploratory data visualizations (but of course feel free t
 author_old <- author_stats %>% 
   filter(period == "1999-2003")
 
+# Generate some summary stats
 old_sum <- author_old %>% 
   group_by(gender) %>% 
   summarise(gender_authors = sum(authors)) %>% 
@@ -81,6 +77,7 @@ old_sum <- author_old %>%
 author_new <- author_stats %>% 
   filter(period == "2014-2018")
 
+# Generate some summary stats
 new_sum <- author_new %>% 
   group_by(gender) %>% 
   summarise(gender_authors = sum(authors)) %>% 
@@ -127,8 +124,10 @@ old_pie + new_pie
 
 ```
 
-
+### Bar chart of authors by gender and country
 ```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
 ggplot(author_stats, aes(x = fct_reorder(country, authors), 
                          y = authors, 
                          fill = gender)) +
@@ -142,12 +141,14 @@ ggplot(author_stats, aes(x = fct_reorder(country, authors),
   theme_minimal() 
 ```
 ```{r}
+# Calculate summary stats grouped by field
 fields <- author_stats %>% 
   group_by(subject_area_or_subfield, gender) %>% 
   summarise(field_gender = sum(authors)) %>% 
   mutate(total_authors = sum(field_gender),
          percent_field = field_gender/total_authors)
 
+# pivot wider to add columns of the number of authors by field by men or women
 fields_wide <- fields %>%
   pivot_wider(
     id_cols = c(subject_area_or_subfield, total_authors),
@@ -163,8 +164,11 @@ fields_wide <- fields %>%
 
 ```
 
+### Dumbbell chart of authors by gender and field
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
 ggplot(fields_wide) +
   geom_linerange(aes(y = subject_area_or_subfield,
                      xmin = field_gender_women, 
@@ -183,8 +187,21 @@ ggplot(fields_wide) +
       color = "Gender") +
   theme_minimal() 
 ```
-
+## Conclusions
 
 1. What have you learned about your data? Have any potentially interesting patterns emerged?
+I think my first graph of pie charts shows a nice overall trend of women publications increasing across time. Since by time is binned instead of continuous, I thought it was better to show this change with two separate charts, rather than putting time along the x-axis. Open for thoughts about how to improve this though. 
+
+My graphs two and three are showing the gender publishing gap across two different variables: country and field. I don't love the way the country bar chart looks, I think it might be better with a dumbbell chart like I do later on, but I'd like to find a better visualization. I'm not even super attached to the idea of using country as variable, but I thought I'd explore it at this state. 
+
+The dumbbell chart I like a lot; I appreciate how it makes gender disparities very obvious. I think I could even do a sub-sample and zoom in on the fields with the highest and lowest publishing gaps.
+
+
 2. In HW #1, you outlined some questions that you wanted to answer using these data. Have you made any strides towards answering those questions? If yes, how so? If no, what next steps do you need to take (e.g. I need to create X plot type, I still need to track down Y data, I need to restructure existing data so that you can visualize it in Z ways, etc.)?
+I'm making strides towards understandning how the gender publishing gap is changing over time. However, I haven't made any connection with publishing to overall career progression. The xlsx has other sheets with data about grantee statistics, patent statistics, career progression, and mobility. However, these sheets have significantly less data points, ranging from 25-500 observations as opposed to the 47,000 observations the author statistics has. Additionally, the columns on these other sheets are hard for me to interpret, I'm not sure what they're actually measuring. 
+
+At this point, I can either restructure my question to fit better with the data I do have, or I can look for better data/try to understand what the data I do have is saying. 
+
 3. What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges.
+
+I think the challenges I foresee are pretty much summed up by what I described above. I will spend more time going through the technical report associated with this data to see if I can find anymore clarity. 
