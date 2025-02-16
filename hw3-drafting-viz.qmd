@@ -1,0 +1,44 @@
+---
+title: "Drafting Visualizations"
+author: "Haylee Oyler"
+format:
+  html:
+    embed-resources: true
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| code-fold: true
+#| code-summary: "Load libraries"
+
+library(tidyverse)
+
+```
+
+
+#### 1. Which option do you plan to pursue? 
+
+I plan to pursue option 1
+
+#### 2. Restate your questions. Has this changed at all since HW #1? If yes, how so?
+you should have one overarching question and at least three sub-questions that each of your infographic components answer.
+
+How has the gender gap in academic publishing changed over time?
+
+#### 3. Explain which variables from your data set you will use to answer your questions, and how.
+
+#### 4. Find at least two data visualizations that you could  borrow/adapt pieces from and explain which elements you might borrow.
+
+#### 5. Hand-draw your anticipated visualizations
+
+####  6. Mock up all of your hand drawn visualizations using code
+
+#### 7. Answer the following questions:
+
+a. What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R? If you struggled with mocking up any of your three visualizations (from #6, above), describe those challenges here.
+
+b. What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven’t covered in class that you’ll be learning how to use for your visualizations?
+
+c. What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
