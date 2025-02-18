@@ -185,8 +185,10 @@ fields_wide <- fields %>%
 #......................import Google fonts.......................
 # `name` is the name of the font as it appears in Google Fonts
 # `family` is the user-specified id that you'll use to apply a font in your ggpplot
-# font_add_google(name = "Josefin Sans", family = "josefin")
-# font_add_google(name = "Sen", family = "sen")
+font_add_google(name = "Josefin Sans", family = "josefin")
+font_add_google(name = "Sen", family = "sen")
+font_add_google(name = "Commissioner", family = "commissioner")
+
 # 
 # #....................import Font Awesome fonts...................
 # font_add(family = "fa-brands",
@@ -198,11 +200,9 @@ fields_wide <- fields %>%
 ```
 
 ```{r}
-# subtitle <- glue::glue("<span style='font-family:fa-regular;'>{money_icon};</span>
-#                        Median earnings of full-time 
-#                        <span style='color:#6A1E99;'>**male**</span> versus 
-#                        <span style='color:#ec9bfc;'>**female**</span>
-#                        workers by occupation in 2016")
+subtitle <- glue::glue("Percentage of total academic publications by
+                       <span style='color:#6A1E99;'>**men**</span> and
+                       <span style='color:#ec9bfc;'>**women**</span>")
 ```
 
 
@@ -214,7 +214,7 @@ fields_wide <- fields_wide %>%
   mutate(subject_area_or_subfield = fct_reorder(.f = subject_area_or_subfield, 
                                                 .x = percent_gender_gap))
 
-ggplot(fields_wide) +
+final_plot <- ggplot(fields_wide) +
   geom_linerange(aes(y = subject_area_or_subfield,
                      xmin = percent_field_women, 
                      xmax = percent_field_men)) +
@@ -229,18 +229,25 @@ ggplot(fields_wide) +
   scale_x_continuous(breaks = seq(0, 1, by = 0.1),
                      labels = scales::percent_format(scale = 100)) +  
   scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
-  labs(title = "Men Publish More Across Almost All Academic Fields",
+  labs(title = "Men Publish More Across Most Academic Fields",
        subtitle = "Percentage of total academic publications by men and women",
       x = "Percentage of Total Publications",
       y = "",
       color = "Gender") +
-  theme_minimal(base_size = 18)  +
+  theme_minimal(base_size = 20)  +
     theme(
     # legend.position = "none",
-    text = element_text(family = "serif"),
+    # text = element_text(family = "sen"),
     plot.title = element_text(face = "bold"),
-    plot.subtitle = element_text(size = rel(0.8)),
-    axis.title = element_text(size=rel(0.8), face = "plain"),
+    # plot.subtitle = ggtext::element_textbox(family = "sen",
+    #                                         size = rel(1.1),
+    #                                         color = "black",
+    #                                         width = unit(35, 'cm'),
+    #                                         padding = margin(t = 5, r = 0, b = 5, l = 0),                                     margin = margin(t = 2, r = 0, b = 6, l = 0)),
+    axis.title = element_text(size=rel(1)),
+    axis.text.x = element_text(size=rel(1), face = "bold"),
+    axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
+    plot.background = element_rect(fill = "white", color = NA))
     # plot.caption = element_text(size=12, face = "plain"))
 ```
 
@@ -278,7 +285,7 @@ ggsave(
   filename = here::here("images", "dumbbell.png"),
   plot = final_plot, 
   device = "png",
-  width = 7, 
+  width = 11, 
   height = 9,
   unit = "in",
   dpi = 300
