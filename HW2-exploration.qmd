@@ -8,18 +8,23 @@ format:
 execute:
   warning: false
   message: false
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
 #| code-fold: true
 #| code-summary: "Load Libraries"
 
-
 library(tidyverse)
 library(here)
 library(janitor)
 library(readxl)
 library(patchwork)
+library(showtext)
+library(glue)
+library(ggtext)
+library(scales)
 ```
 
 ## Data Exploration 
@@ -147,7 +152,9 @@ fields <- author_stats %>%
   summarise(field_gender = sum(authors)) %>% 
   mutate(total_authors = sum(field_gender),
          percent_field = field_gender/total_authors)
+```
 
+```{r}
 # pivot wider to add columns of the number of authors by field by men or women
 fields_wide <- fields %>%
   pivot_wider(
@@ -157,7 +164,9 @@ fields_wide <- fields %>%
     names_prefix = ""
   ) %>%
   group_by(subject_area_or_subfield) %>%
-  mutate(total_authors = first(total_authors)) %>%
+  mutate(total_authors = first(total_authors),
+         gender_gap = field_gender_men - field_gender_women,
+         percent_gender_gap = percent_field_men - percent_field_women) %>%
   ungroup() %>% 
   filter(subject_area_or_subfield != "ALL")
 
@@ -167,8 +176,80 @@ fields_wide <- fields %>%
 ### Dumbbell chart of authors by gender and field
 
 ```{r}
+
+# showtext_auto(FALSE)
+# showtext_opts(dpi=300)
+```
+
+```{r}
+#......................import Google fonts.......................
+# `name` is the name of the font as it appears in Google Fonts
+# `family` is the user-specified id that you'll use to apply a font in your ggpplot
+# font_add_google(name = "Josefin Sans", family = "josefin")
+# font_add_google(name = "Sen", family = "sen")
+# 
+# #....................import Font Awesome fonts...................
+# font_add(family = "fa-brands",
+#          regular = here::here("fonts", "Font Awesome 6 Brands-Regular-400.otf"))
+# font_add(family = "fa-regular",
+#          regular = here::here("fonts", "Font Awesome 6 Free-Regular-400.otf")) 
+# font_add(family = "fa-solid",
+#          regular = here::here("fonts", "Font Awesome 6 Free-Solid-900.otf"))
+```
+
+```{r}
+# subtitle <- glue::glue("<span style='font-family:fa-regular;'>{money_icon};</span>
+#                        Median earnings of full-time 
+#                        <span style='color:#6A1E99;'>**male**</span> versus 
+#                        <span style='color:#ec9bfc;'>**female**</span>
+#                        workers by occupation in 2016")
+```
+
+
+```{r}
 #| code-fold: true
 #| code-summary: "Reveal code"
+
+fields_wide <- fields_wide %>% 
+  mutate(subject_area_or_subfield = fct_reorder(.f = subject_area_or_subfield, 
+                                                .x = percent_gender_gap))
+
+ggplot(fields_wide) +
+  geom_linerange(aes(y = subject_area_or_subfield,
+                     xmin = percent_field_women, 
+                     xmax = percent_field_men)) +
+  geom_point(aes(x = percent_field_women, 
+                 y = subject_area_or_subfield, 
+                 color = "Women"), size = 2.5) +
+  geom_point(aes(x = percent_field_men, 
+                 y = subject_area_or_subfield, 
+                 color = "Men"),
+             size = 2.5) +
+  geom_vline(xintercept = .5, linetype = "dashed", color = "gray40") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1),
+                     labels = scales::percent_format(scale = 100)) +  
+  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
+  labs(title = "Men Publish More Across Almost All Academic Fields",
+       subtitle = "Percentage of total academic publications by men and women",
+      x = "Percentage of Total Publications",
+      y = "",
+      color = "Gender") +
+  theme_minimal(base_size = 18)  +
+    theme(
+    # legend.position = "none",
+    text = element_text(family = "serif"),
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = rel(0.8)),
+    axis.title = element_text(size=rel(0.8), face = "plain"),
+    # plot.caption = element_text(size=12, face = "plain"))
+```
+
+```{r}
+
+fields_wide <- fields_wide %>% 
+  mutate(subject_area_or_subfield = fct_reorder(.f = subject_area_or_subfield, 
+                                                .x = gender_gap))
+
 ggplot(fields_wide) +
   geom_linerange(aes(y = subject_area_or_subfield,
                      xmin = field_gender_women, 
@@ -180,13 +261,31 @@ ggplot(fields_wide) +
                  y = subject_area_or_subfield, 
                  color = "Men"),
              size = 2.5) +
-  scale_color_manual(values = c("Women" = "violet", "Men" = "#6A1E99")) + 
+  # scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
   labs(title = "Academic Publications by Gender Across Different Disciplines",
-      x = "Number of Publications",
-      y = "Subject Area/Subfield",
+       subtitle = "",
+      x = "Number of Total Publications",
+      y = "",
       color = "Gender") +
-  theme_minimal() 
+  theme_minimal()
 ```
+
+
+```{r}
+# write plot to file (aka save as png) ----
+ggsave(
+  filename = here::here("images", "dumbbell.png"),
+  plot = final_plot, 
+  device = "png",
+  width = 7, 
+  height = 9,
+  unit = "in",
+  dpi = 300
+)
+```
+
+
 ## Conclusions
 
 1. What have you learned about your data? Have any potentially interesting patterns emerged?
