@@ -257,6 +257,7 @@ ggplot(plot_long, aes(x = fct_reorder(country, author_diff),
   theme_minimal() 
 # EU28, USA, JPN, DEU, GBR, FRA, CAN
 ```
+
 ```{r}
 plot(author_country)
 ```
