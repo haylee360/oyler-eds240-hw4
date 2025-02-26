@@ -9,36 +9,290 @@ execute:
   message: false
 ---
 
-```{r}
-#| code-fold: true
-#| code-summary: "Load libraries"
-
-library(tidyverse)
-
-```
-
 
 #### 1. Which option do you plan to pursue? 
 
 I plan to pursue option 1
 
 #### 2. Restate your questions. Has this changed at all since HW #1? If yes, how so?
-you should have one overarching question and at least three sub-questions that each of your infographic components answer.
 
-How has the gender gap in academic publishing changed over time?
+**Is there a gender gap in academic publishing and if so, what does it look like?**
+
+- What is the gender gap across different academic disciplines?
+- How has the gender gap changed over time?
+- What does the gender gap look like from country to country?
 
 #### 3. Explain which variables from your data set you will use to answer your questions, and how.
 
+The variables I will use to answer this question are as follows: 
+
+- `authors`: int; represents the total number of authored publications for a specific country, gender, time period, and field. 
+- `country`: chr; the country of origin of the publications
+- `gender`: chr; the gender of the publisher
+- `subject_area_or_subfield`: chr; the academic discipline the paper was published from
+- `period`: fct; represents one of two time periods (1993-2003) or (2014-2018). There is no information on publications between or after these time periods. 
+
+All this information comes from one dataset about gender and academic publishing created by Elsevier. 
+
 #### 4. Find at least two data visualizations that you could  borrow/adapt pieces from and explain which elements you might borrow.
+
+![Source: Georgios Karamanis](images/gender_words.png){fig-alt="A visualization showing major industries colored by the gender proportion that work in that field. The words serve as the data themselves, with the letter coloring changing with the proportion."}
+
+I like this data viz as a cool way I might show the gender gap amongst different academic disciplines. Currently, I'm using a bubble chart with the percentage of total publications by gender. I like this viz a lot because it really centers the industries themselves, rather than the numbers. I think this would work nicely with the data I have. 
+
+![Source: Georgios Karamanis](images/kenya-gender-disability.png){fig-alt="A dumbbell plot of the disability prevalence in men, women, and intersex people in Kenya. Intersex people have higher rates of disability across all types."}
+
+If I wanted to switch up my variables and display gender gap by country with a dumbbell chart, it could look something like this. I like how the values along the x-axis are also located inside the bubbles themselves, that way you don't have to work to hard to see what they are. I also like the gender color choices here. 
 
 #### 5. Hand-draw your anticipated visualizations
 
+![Hand-drawn final visualization](images/mockup.png){fig-alt="Hand drawn mock up of final project visualization with a map at the top, a dumbbell plot in the bottom left, and a pie chart in the bottom right"}
+
 ####  6. Mock up all of your hand drawn visualizations using code
+
+```{r}
+#| code-fold: true
+#| code-summary: "Load libraries"
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(readxl)
+library(patchwork)
+library(showtext)
+library(glue)
+library(ggtext)
+library(scales)
+
+# Enable showtext
+showtext_auto()
+
+# Ensure showtext is used
+showtext_opts(dpi = 300)
+
+font_add_google(name = "Lexend", family = "lexend")
+```
+
+```{r}
+# Read in data
+author_stats = read_xlsx(here("data", "authors.xlsx"), sheet = 1) %>% 
+  clean_names() %>% 
+  mutate(gender = str_to_title(gender))
+```
+
+```{r}
+# Filter data into the two different time periods
+
+# Older data
+author_old <- author_stats %>% 
+  filter(period == "1999-2003")
+
+# Generate some summary stats
+old_sum <- author_old %>% 
+  group_by(gender) %>% 
+  summarise(gender_authors = sum(authors)) %>% 
+  ungroup() %>% 
+  mutate(total_authors = sum(gender_authors), 
+         percent_pub = gender_authors/total_authors)
+
+# More recent data
+author_new <- author_stats %>% 
+  filter(period == "2014-2018")
+
+# Generate some summary stats
+new_sum <- author_new %>% 
+  group_by(gender) %>% 
+  summarise(gender_authors = sum(authors)) %>% 
+  ungroup() %>% 
+  mutate(total_authors = sum(gender_authors), 
+         percent_pub = gender_authors/total_authors)
+```
+
+### Pie chart of total publications by gender over time
+
+```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+#| fig-alt: "Two pie charts showing the changing in the gender breakdown of total academic publications. Women composed 25% of publications between 1993-2003 and they composed 35% of publications between 2014-2018"
+#| fig-width: 9
+#| fig-height: 7
+
+# Pie chart for the older years
+old_pie <- ggplot(old_sum, aes(x = "", y = percent_pub, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(gender, "\n", scales::percent(percent_pub, accuracy = 1)), family = "lexend"),             
+            position = position_stack(vjust = 0.5),  
+            color = "white", size = 5) +  
+  scale_fill_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
+  theme_void() +  
+  labs(title = "1993-2003",
+       fill = "") +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.text = element_text(family = "lexend"),
+    plot.title = element_text(hjust=0.5),
+    legend.position = "none"
+  )
+
+# Pie chart for the more recent years
+new_pie <- ggplot(new_sum, aes(x = "", y = percent_pub, fill = gender)) +
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = paste0(gender, "\n", scales::percent(percent_pub, accuracy = 1)), family = "lexend"),             
+            position = position_stack(vjust = 0.5),  
+            color = "white", size = 5) +  
+  scale_fill_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
+  theme_void() +  
+  labs(title = "2014-2018",
+       fill = "") +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.text = element_text(family = "lexend"),
+    plot.title = element_text(hjust=0.5),
+    legend.position = "none"
+  )
+
+# Stick the two figures together
+patchwork <- old_pie + new_pie
+patch_final <- patchwork + plot_annotation(
+  title = "Total Academic Publications by Gender",
+  subtitle = "Women have increased their share of total academic publications by 10% from 1993 to 2018"
+) &
+  theme( 
+    text = element_text(family = "lexend"),
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 14),
+    plot.background = element_rect(fill = "white", color = NA),
+    legend.text = element_text(size=12, face = "bold")
+    )
+patch_final
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Save plot"
+
+# Save figure 
+# ggsave(
+#   filename = here::here("images", "pie.png"),
+#   plot = patch_final, 
+#   device = "png",
+#   width = 9, 
+#   height = 6,
+#   unit = "in",
+#   dpi = 300
+# )
+```
+
+
+```{r}
+
+# Calculate summary stats grouped by field
+fields <- author_stats %>% 
+  group_by(subject_area_or_subfield, gender) %>% 
+  summarise(field_gender = sum(authors)) %>% 
+  mutate(total_authors = sum(field_gender),
+         percent_field = field_gender/total_authors)
+
+
+# pivot wider to add columns of the number of authors by field by men or women
+fields_wide <- fields %>%
+  pivot_wider(
+    id_cols = c(subject_area_or_subfield, total_authors),
+    names_from = gender,
+    values_from = c(field_gender, percent_field),
+    names_prefix = ""
+  ) %>%
+  group_by(subject_area_or_subfield) %>%
+  mutate(total_authors = first(total_authors),
+         gender_gap = field_gender_Men - field_gender_Women,
+         percent_gender_gap = percent_field_Men - percent_field_Women) %>%
+  ungroup() %>% 
+  filter(subject_area_or_subfield != "ALL")
+
+
+```
+
+### Dumbbell chart of total publications by gender across disciplines
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+#| fig-alt: "A dumbbell chart showing the proportion of academic publishings by gender across different disciplines. Mathematics, engineering, and physics have the highest gender gap of approximately 60%, public health has almost no gender gap, and nursing and psychology display a gender gap toward majority women of 10-20%."
+#| fig-width: 11
+#| fig-height: 8
+
+# Reorder data by the gender gap from high to low
+fields_wide <- fields_wide %>% 
+  mutate(subject_area_or_subfield = fct_reorder(.f = subject_area_or_subfield, 
+                                                .x = percent_gender_gap))
+
+# dumbbell plot
+ggplot(fields_wide) +
+  geom_linerange(aes(y = subject_area_or_subfield,
+                     xmin = percent_field_Women, 
+                     xmax = percent_field_Men)) +
+  geom_point(aes(x = percent_field_Women, 
+                 y = subject_area_or_subfield, 
+                 color = "Women"), size = 2.5) +
+  geom_point(aes(x = percent_field_Men, 
+                 y = subject_area_or_subfield, 
+                 color = "Men"),
+             size = 2.5) +
+  geom_vline(xintercept = .5, linetype = "dashed", color = "gray40") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1),
+                     labels = scales::percent_format(scale = 100)) +  
+  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
+  labs(title = "Men Publish More Across Most Academic Fields",
+       subtitle = "Percentage of total academic publications by men and women",
+      x = "Percentage of Total Publications",
+      y = "",
+      color = "Gender") +
+  theme_minimal(base_size = 18)  + # was 20 for png
+    theme(
+    # legend.position = "none",
+    text = element_text(family = "lexend"),
+    plot.title = element_text(face = "bold"),
+    # plot.subtitle = ggtext::element_textbox(family = "sen",
+    #                                         size = rel(1.1),
+    #                                         color = "black",
+    #                                         width = unit(35, 'cm'),
+    #                                         padding = margin(t = 5, r = 0, b = 5, l = 0),                                     margin = margin(t = 2, r = 0, b = 6, l = 0)),
+    axis.title = element_text(size=rel(1)),
+    axis.text.x = element_text(size=rel(1), face = "bold"),
+    axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
+    plot.background = element_rect(fill = "white", color = NA))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Save plot"
+
+# Save plot
+# ggsave(
+#   filename = here::here("images", "dumbbell.png"),
+#   plot = dumbbell_plot, 
+#   device = "png",
+#   width = 11, 
+#   height = 9,
+#   unit = "in",
+#   dpi = 300
+# )
+```
 
 #### 7. Answer the following questions:
 
 a. What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R? If you struggled with mocking up any of your three visualizations (from #6, above), describe those challenges here.
 
+
+
 b. What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven’t covered in class that you’ll be learning how to use for your visualizations?
 
+Currently, I'm using tidyverse, glue, showtext, ggtext, and scales. The only one we haven't explicitly covered in this class is patchwork. 
+
+
 c. What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
+
+I think feedback around the overarching question would be nice. It still feels a little weak to me, but also I think they're are a lot of constraints over what I can ask given the quality of the data (and the amount of time I can put into this project). 
