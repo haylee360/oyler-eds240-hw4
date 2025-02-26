@@ -63,6 +63,8 @@ library(showtext)
 library(glue)
 library(ggtext)
 library(scales)
+library(sf)
+library(tmap)
 
 # Enable showtext
 showtext_auto()
@@ -78,6 +80,14 @@ font_add_google(name = "Lexend", family = "lexend")
 author_stats = read_xlsx(here("data", "authors.xlsx"), sheet = 1) %>% 
   clean_names() %>% 
   mutate(gender = str_to_title(gender))
+
+# Read in countries geometries
+countries <- read_sf(here("data", "countries", "world-administrative-boundaries.shp")) %>% 
+  select(iso3, name, geometry)
+
+# Join author data and countries geometries
+author_country <- left_join(author_stats, countries, by = join_by(country== iso3))
+
 ```
 
 ```{r}
@@ -280,6 +290,11 @@ ggplot(fields_wide) +
 #   unit = "in",
 #   dpi = 300
 # )
+```
+
+
+```{r}
+
 ```
 
 #### 7. Answer the following questions:

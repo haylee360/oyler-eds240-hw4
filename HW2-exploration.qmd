@@ -258,6 +258,12 @@ ggplot(plot_long, aes(x = fct_reorder(country, author_diff),
 # EU28, USA, JPN, DEU, GBR, FRA, CAN
 ```
 ```{r}
+plot(author_country)
+```
+
+
+
+```{r}
 # Calculate summary stats grouped by field
 fields <- author_stats %>% 
   group_by(subject_area_or_subfield, gender) %>% 
@@ -277,8 +283,8 @@ fields_wide <- fields %>%
   ) %>%
   group_by(subject_area_or_subfield) %>%
   mutate(total_authors = first(total_authors),
-         gender_gap = field_gender_men - field_gender_women,
-         percent_gender_gap = percent_field_men - percent_field_women) %>%
+         gender_gap = field_gender_Men - field_gender_Women,
+         percent_gender_gap = percent_field_Men - percent_field_Women) %>%
   ungroup() %>% 
   filter(subject_area_or_subfield != "ALL")
 
@@ -328,12 +334,12 @@ fields_wide <- fields_wide %>%
 
 ggplot(fields_wide) +
   geom_linerange(aes(y = subject_area_or_subfield,
-                     xmin = percent_field_women, 
-                     xmax = percent_field_men)) +
-  geom_point(aes(x = percent_field_women, 
+                     xmin = percent_field_Women, 
+                     xmax = percent_field_Men)) +
+  geom_point(aes(x = percent_field_Women, 
                  y = subject_area_or_subfield, 
                  color = "Women"), size = 2.5) +
-  geom_point(aes(x = percent_field_men, 
+  geom_point(aes(x = percent_field_Men, 
                  y = subject_area_or_subfield, 
                  color = "Men"),
              size = 2.5) +
@@ -361,33 +367,6 @@ ggplot(fields_wide) +
     axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
     plot.background = element_rect(fill = "white", color = NA))
     # plot.caption = element_text(size=12, face = "plain"))
-```
-
-```{r}
-
-fields_wide <- fields_wide %>% 
-  mutate(subject_area_or_subfield = fct_reorder(.f = subject_area_or_subfield, 
-                                                .x = gender_gap))
-
-ggplot(fields_wide) +
-  geom_linerange(aes(y = subject_area_or_subfield,
-                     xmin = field_gender_women, 
-                     xmax = field_gender_men)) +
-  geom_point(aes(x = field_gender_women, 
-                 y = subject_area_or_subfield, 
-                 color = "Women"), size = 2.5) +
-  geom_point(aes(x = field_gender_men, 
-                 y = subject_area_or_subfield, 
-                 color = "Men"),
-             size = 2.5) +
-  # scale_x_continuous(labels = scales::percent_format(scale = 1)) +
-  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
-  labs(title = "Academic Publications by Gender Across Different Disciplines",
-       subtitle = "",
-      x = "Number of Total Publications",
-      y = "",
-      color = "Gender") +
-  theme_minimal()
 ```
 
 
