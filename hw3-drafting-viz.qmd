@@ -22,6 +22,8 @@ I plan to pursue option 1
 - How has the gender gap changed over time?
 - What does the gender gap look like from country to country?
 
+I think these questions have changed slightly. I was originally interested in understanding how the gender publishing gap affects women's career mobility and opportunities overall. That, however, is a much more complicated question that I do not have the data for. So, I've decided to go with a simpler approach. 
+
 #### 3. Explain which variables from your data set you will use to answer your questions, and how.
 
 The variables I will use to answer this question are as follows: 
@@ -31,14 +33,17 @@ The variables I will use to answer this question are as follows:
 - `gender`: chr; the gender of the publisher
 - `subject_area_or_subfield`: chr; the academic discipline the paper was published from
 - `period`: fct; represents one of two time periods (1993-2003) or (2014-2018). There is no information on publications between or after these time periods. 
+- `geometry`: vec; country boundaries so I can map gender differences across countries
 
-All this information comes from one dataset about gender and academic publishing created by Elsevier. 
+All this information comes from one dataset about gender and academic publishing created by Elsevier with the exception of the geometries, that come from a world administrative boundaries shape file. 
+
+Most of the variables I can use as-is in my visualizations to answer my questions. There is some wrangling that has to happen, and it mostly involves generating summary statistics of publications by gender and country, or gender and academic discipline. 
 
 #### 4. Find at least two data visualizations that you could  borrow/adapt pieces from and explain which elements you might borrow.
 
 ![Source: Georgios Karamanis](images/gender_words.png){fig-alt="A visualization showing major industries colored by the gender proportion that work in that field. The words serve as the data themselves, with the letter coloring changing with the proportion."}
 
-I like this data viz as a cool way I might show the gender gap amongst different academic disciplines. Currently, I'm using a bubble chart with the percentage of total publications by gender. I like this viz a lot because it really centers the industries themselves, rather than the numbers. I think this would work nicely with the data I have. 
+I like this data viz as a cool way I might show the gender gap amongst different academic disciplines. Currently, I'm using a bubble chart with the percentage of total publications by gender. I like this viz a lot because it really centers the industries themselves, rather than the numbers. I think this would work nicely with the data I have, however, I am also intimidated about trying to accomplish this. 
 
 ![Source: Georgios Karamanis](images/kenya-gender-disability.png){fig-alt="A dumbbell plot of the disability prevalence in men, women, and intersex people in Kenya. Intersex people have higher rates of disability across all types."}
 
@@ -52,7 +57,7 @@ If I wanted to switch up my variables and display gender gap by country with a d
 
 ```{r}
 #| code-fold: true
-#| code-summary: "Load libraries"
+#| code-summary: "Load libraries and settings"
 
 library(tidyverse)
 library(here)
@@ -86,9 +91,6 @@ author_stats = read_xlsx(here("data", "authors.xlsx"), sheet = 1) %>%
 # Read in countries geometries
 countries <- read_sf(here("data", "countries", "world-administrative-boundaries.shp")) %>% 
   select(iso3, name, geometry)
-
-# Join author data and countries geometries
-author_country <- left_join(author_stats, countries, by = join_by(country== iso3))
 
 ```
 
@@ -169,14 +171,16 @@ new_pie <- ggplot(new_sum, aes(x = "", y = percent_pub, fill = gender)) +
 patchwork <- old_pie + new_pie
 patch_final <- patchwork + plot_annotation(
   title = "Total Academic Publications by Gender",
-  subtitle = "Women have increased their share of total academic publications by 10% from 1993 to 2018"
+  subtitle = "Women have increased their share of total academic publications by 10% from 1993 to 2018",
+  caption = "Source: Elsevier Data Repository | Graphic: Haylee Oyler"
 ) &
   theme( 
     text = element_text(family = "lexend"),
     plot.title = element_text(face = "bold", size = 16),
     plot.subtitle = element_text(size = 14),
     plot.background = element_rect(fill = "white", color = NA),
-    legend.text = element_text(size=12, face = "bold")
+    legend.text = element_text(size=12, face = "bold"),
+    plot.caption = element_text(size=10)
     )
 patch_final
 ```
@@ -199,7 +203,6 @@ patch_final
 
 
 ```{r}
-
 # Calculate summary stats grouped by field
 fields <- author_stats %>% 
   group_by(subject_area_or_subfield, gender) %>% 
@@ -259,12 +262,12 @@ ggplot(fields_wide) +
   scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
   labs(title = "Men Publish More Across Most Academic Fields",
        subtitle = "Percentage of total academic publications by men and women",
+       caption = "Source: Elsevier Data Repository | Graphic: Haylee Oyler",
       x = "Percentage of Total Publications",
       y = "",
       color = "Gender") +
   theme_minimal(base_size = 18)  + # was 20 for png
     theme(
-    # legend.position = "none",
     text = element_text(family = "lexend"),
     plot.title = element_text(face = "bold"),
     # plot.subtitle = ggtext::element_textbox(family = "sen",
@@ -275,6 +278,7 @@ ggplot(fields_wide) +
     axis.title = element_text(size=rel(1)),
     axis.text.x = element_text(size=rel(1), face = "bold"),
     axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
+    plot.caption = element_text(size=rel(0.6)),
     plot.background = element_rect(fill = "white", color = NA))
 ```
 
@@ -296,36 +300,8 @@ ggplot(fields_wide) +
 
 ### Map of publications by country
 
-
 ```{r}
-author_plot <- author_country %>% 
-  group_by(country) %>%
-  summarize(total_authors = sum(authors),
-         authors_men = sum(authors[gender=="Men"]),
-          authors_women = sum(authors[gender == "Women"])) %>% 
-  mutate(author_diff = authors_men - authors_women)
-  # ungroup()
-  # pivot_wider(names_from = gender, values_from = authors, values_fill = list(authors = 0)) %>% 
-  #   
-
-
-plot_long <- author_plot %>% 
-  pivot_longer(cols = c(authors_men, authors_women), names_to = "gender", names_prefix = "authors_", values_to = "author_by_gender")   
- # filter(country %in% c('EU28', 'USA', 'JPN', 'DEU', 'GBR', 'FRA', 'CAN'))
-```
-
-
-```{r}
-# plot_long <- left_join(plot_long, countries, by = join_by(country== iso3))
-# 
-# plot_long <- plot_long %>% 
-#   st_as_sf() %>% 
-#   drop_na()
-```
-
-
-
-```{r}
+# Data wrangling on average number of publications by country
 pub <- author_stats %>% 
   group_by(country) %>%
   summarize(total_pub = sum(average_publications),
@@ -333,152 +309,76 @@ pub <- author_stats %>%
           pub_women = sum(average_publications[gender == "Women"])) %>% 
   mutate(pub_diff = pub_men - pub_women) 
 
-
+# Pivot longer for visualization purposes
 pub_long <- pub %>% 
   pivot_longer(cols = c(pub_men, pub_women), names_to = "gender", names_prefix = "pub_", values_to = "author_by_gender")
 ```
 
 ```{r}
+# Join countries geometries
 pub_long <- left_join(pub_long, countries, by = join_by(country== iso3))
 
+# Reassert that it's a sf data frame
 pub_long <- pub_long %>% 
   st_as_sf() %>% 
   drop_na() %>% 
-  filter(name != "Azores Islands")
+  filter(name != "Azores Islands") # remove extra country 
 ```
 
 
 ```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+#| fig-alt: "A world map showing the difference in average number of publications by country between men and women. Belgium, Germany, and Denmark have some of the highest disparities while Argentina, Mexico, and Turkey have some of the lowest. "
 #| fig-width: 10
 #| fig-height: 7
 
+# Map of average publications by country
 map <- tm_shape(pub_long) +
   tm_fill("pub_diff",
           palette = c("#F2C5FD", "#EC9BFC", "#D67BE6", 
                       "#C05BD0", "#A93CBA", "#8C2AA7", "#6A1E99"),
-          title = "Average\npublication\ndifference") +
+          title = "Average number of\nadditional papers published\nby men compared to women") +
   tm_layout(main.title = "Difference in Average Publications Across Countries\nBetween Men and Women",
-            main.title.size = 1.5, 
+            main.title.size = 1.8, 
+            main.title.position = "center",
+            main.title.fontface = "bold",
             # subtitle = "Data on gender disparities in academic publications across countries",
             # subtitle.size = 1.2,
             # caption = "Source: Elsevier Data Repository | Visualization: Haylee Oyler",
             # caption.size = 0.9,
             bg.color = "#f9f5fc",
+            inner.margins = c(0, 0, 0, 0),  # Adjust margins (top, right, bottom, left)
             legend.position = c(0, 0.08),
+            legend.text.size = 1.1,
+            legend.title.size = 1.1,
             fontfamily = "lexend",
             frame = FALSE)
 
-# Render the map and add subtitle & caption manually
+# Try to add subtitle caption manually
 tmap_arrange(map)
 
-# Manually adding subtitle and caption
+# Subtitle
 # grid::grid.text("Data on gender disparities in academic publications across countries", 
 #           x = 0.4, y = 0.90, gp = gpar(fontsize = 14, fontfamily = "lexend"))
 
-grid::grid.text("Source: Elsevier Data Repository | Visualization: Haylee Oyler", 
+# Caption
+grid::grid.text("Source: Elsevier Data Repository | Graphic: Haylee Oyler", 
           x = 0.5, y = 0.05, gp = gpar(fontsize = 10, fontfamily = "lexend"))
 
 ```
 
 
-```{r}
-#| code-fold: true
-#| code-summary: "Reveal code"
-
-pub_long$gender <- factor(pub_long$gender, levels = c("women", "men"), ordered = TRUE)
-pub_long$pub_diff <- as.numeric(pub_long$pub_diff)
-
-ggplot(pub_long, aes(x = fct_reorder(country, pub_diff),
-                      y = author_by_gender,
-                      fill = gender)) +
-  geom_col(show.legend = TRUE, position = "dodge") +
-  coord_flip() +
-  scale_fill_manual(values = c("men" = "#6A1E99", "women" = "#ec9bfc"),
-                    labels = c("Women", "Men")) +
-  labs(title = "Number of Academic Authors by Gender and Country",
-      x = "Country",
-      y = "Number of Authors",
-      fill = "Gender") +
-  theme_minimal()
-```
-```{r}
-ggplot(pub_long, aes(x = fct_reorder(country, pub_diff),
-                      y = pub_diff,
-                     group = country)) +
-  geom_col()
-
-pub$country <- fct_reorder(pub$country, pub$pub_diff)
-```
-
-
-```{r}
-# dumbbell plot
-ggplot(pub) +
-  geom_linerange(aes(y = country,
-                     xmin = pub_women, 
-                     xmax = pub_men)) +
-  geom_point(aes(x = pub_women, 
-                 y = country, 
-                 color = "Women"), size = 2.5) +
-  geom_point(aes(x = pub_men, 
-                 y = country, 
-                 color = "Men"),
-             size = 2.5) +
-  # geom_vline(xintercept = .5, linetype = "dashed", color = "gray40") +
-  # scale_x_continuous(breaks = seq(0, 1, by = 0.1),
-  #                    labels = scales::percent_format(scale = 100)) +  
-  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
-  labs(title = "Men Publish More Across Most Academic Fields",
-       subtitle = "Percentage of total academic publications by men and women",
-      x = "Percentage of Total Publications",
-      y = "",
-      color = "Gender") +
-  theme_minimal(base_size = 18)  + # was 20 for png
-    theme(
-    # legend.position = "none",
-    text = element_text(family = "lexend"),
-    plot.title = element_text(face = "bold"),
-    axis.title = element_text(size=rel(1)),
-    axis.text.x = element_text(size=rel(1), face = "bold"),
-    axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
-    plot.background = element_rect(fill = "white", color = NA))
-```
-
-
-```{r}
-#| code-fold: true
-#| code-summary: "Reveal code"
-
-plot_long$gender <- factor(plot_long$gender, levels = c("women", "men"), ordered = TRUE)
-plot_long$author_diff <- as.numeric(plot_long$author_diff)
-
-
-ggplot(plot_long, aes(x = fct_reorder(country, author_diff), 
-                      y = author_by_gender, 
-                      fill = gender)) +
-  geom_col(show.legend = TRUE, position = "dodge") +  
-  coord_flip() +  
-  scale_fill_manual(values = c("men" = "#6A1E99", "women" = "#ec9bfc"), 
-                    labels = c("Women", "Men")) + 
-  labs(title = "Number of Academic Authors by Gender and Country",
-      x = "Country",
-      y = "Number of Authors",
-      fill = "Gender") +
-  theme_minimal() 
-# EU28, USA, JPN, DEU, GBR, FRA, CAN
-```
-
 #### 7. Answer the following questions:
 
 a. What challenges did you encounter or anticipate encountering as you continue to build / iterate on your visualizations in R? If you struggled with mocking up any of your three visualizations (from #6, above), describe those challenges here.
 
-So the mapping did not go nearly as planned. Only having 26 countries makes it difficult to show more meaningful trends. Also, the "country" with the largest gender gap is this `eu28` country, which consists of 28 european block countries. Some countries within eu28 also have their own entries?? I feel like I should just drop `eu28`, but also there are so many countries within it that would be interesting to show on the map. 
+So the mapping did not go nearly as planned. Only having 26 countries makes it difficult to show more meaningful trends. Also, the "country" with the largest gender gap is this `eu28` country, which consists of 28 european block countries. I decided to just drop it entirely because it didn't make sense to visualize, especially because many countries inside eu28 also had their own entries. 
 
 b. What ggplot extension tools / packages do you need to use to build your visualizations? Are there any that we haven’t covered in class that you’ll be learning how to use for your visualizations?
 
-Currently, I'm using tidyverse, glue, showtext, ggtext, and scales. The only one we haven't explicitly covered in this class is patchwork. 
-
+Currently, I'm using tidyverse, glue, showtext, ggtext, and scales. The only one we haven't explicitly covered in this class is patchwork and grid. 
 
 c. What feedback do you need from the instructional team and / or your peers to ensure that your intended message is clear?
 
-I think feedback around the overarching question would be nice. It still feels a little weak to me, but also I think they're are a lot of constraints over what I can ask given the quality of the data (and the amount of time I can put into this project). 
+I think feedback around the map would be nice. It was a bit of a last minute idea, and I'm not sure whether to stick with it or scrap it and go back to the original plan (which was a column chart). Also I really like the way my dumbbell plot looks right now, but I do think the idea of doing the words plot like in the example visualization I selected could be cool. Any thoughts about that would be appreciated. Maybe I could visualize something else with the dumbbells?

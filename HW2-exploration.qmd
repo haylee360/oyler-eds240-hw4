@@ -403,3 +403,121 @@ At this point, I can either restructure my question to fit better with the data 
 3. What challenges do you foresee encountering with your data? These can be data wrangling and / or visualization challenges.
 
 I think the challenges I foresee are pretty much summed up by what I described above. I will spend more time going through the technical report associated with this data to see if I can find anymore clarity. 
+
+### EXTRAAAA
+```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+
+pub_long$gender <- factor(pub_long$gender, levels = c("women", "men"), ordered = TRUE)
+pub_long$pub_diff <- as.numeric(pub_long$pub_diff)
+
+ggplot(pub_long, aes(x = fct_reorder(country, pub_diff),
+                      y = author_by_gender,
+                      fill = gender)) +
+  geom_col(show.legend = TRUE, position = "dodge") +
+  coord_flip() +
+  scale_fill_manual(values = c("men" = "#6A1E99", "women" = "#ec9bfc"),
+                    labels = c("Women", "Men")) +
+  labs(title = "Number of Academic Authors by Gender and Country",
+      x = "Country",
+      y = "Number of Authors",
+      fill = "Gender") +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(pub_long, aes(x = fct_reorder(country, pub_diff),
+                      y = pub_diff,
+                     group = country)) +
+  geom_col()
+
+pub$country <- fct_reorder(pub$country, pub$pub_diff)
+```
+
+
+```{r}
+# dumbbell plot
+ggplot(pub) +
+  geom_linerange(aes(y = country,
+                     xmin = pub_women, 
+                     xmax = pub_men)) +
+  geom_point(aes(x = pub_women, 
+                 y = country, 
+                 color = "Women"), size = 2.5) +
+  geom_point(aes(x = pub_men, 
+                 y = country, 
+                 color = "Men"),
+             size = 2.5) +
+  # geom_vline(xintercept = .5, linetype = "dashed", color = "gray40") +
+  # scale_x_continuous(breaks = seq(0, 1, by = 0.1),
+  #                    labels = scales::percent_format(scale = 100)) +  
+  scale_color_manual(values = c("Women" = "#ec9bfc", "Men" = "#6A1E99")) + 
+  labs(title = "Men Publish More Across Most Academic Fields",
+       subtitle = "Percentage of total academic publications by men and women",
+      x = "Percentage of Total Publications",
+      y = "",
+      color = "Gender") +
+  theme_minimal(base_size = 18)  + # was 20 for png
+    theme(
+    # legend.position = "none",
+    text = element_text(family = "lexend"),
+    plot.title = element_text(face = "bold"),
+    axis.title = element_text(size=rel(1)),
+    axis.text.x = element_text(size=rel(1), face = "bold"),
+    axis.text.y = element_text(size=rel(0.8), face = "bold", color = "black"),
+    plot.background = element_rect(fill = "white", color = NA))
+```
+
+
+```{r}
+#| code-fold: true
+#| code-summary: "Reveal code"
+
+plot_long$gender <- factor(plot_long$gender, levels = c("women", "men"), ordered = TRUE)
+plot_long$author_diff <- as.numeric(plot_long$author_diff)
+
+
+ggplot(plot_long, aes(x = fct_reorder(country, author_diff), 
+                      y = author_by_gender, 
+                      fill = gender)) +
+  geom_col(show.legend = TRUE, position = "dodge") +  
+  coord_flip() +  
+  scale_fill_manual(values = c("men" = "#6A1E99", "women" = "#ec9bfc"), 
+                    labels = c("Women", "Men")) + 
+  labs(title = "Number of Academic Authors by Gender and Country",
+      x = "Country",
+      y = "Number of Authors",
+      fill = "Gender") +
+  theme_minimal() 
+# EU28, USA, JPN, DEU, GBR, FRA, CAN
+```
+
+
+```{r}
+author_plot <- author_country %>% 
+  group_by(country) %>%
+  summarize(total_authors = sum(authors),
+         authors_men = sum(authors[gender=="Men"]),
+          authors_women = sum(authors[gender == "Women"])) %>% 
+  mutate(author_diff = authors_men - authors_women)
+  # ungroup()
+  # pivot_wider(names_from = gender, values_from = authors, values_fill = list(authors = 0)) %>% 
+  #   
+
+
+plot_long <- author_plot %>% 
+  pivot_longer(cols = c(authors_men, authors_women), names_to = "gender", names_prefix = "authors_", values_to = "author_by_gender")   
+ # filter(country %in% c('EU28', 'USA', 'JPN', 'DEU', 'GBR', 'FRA', 'CAN'))
+```
+
+
+```{r}
+# plot_long <- left_join(plot_long, countries, by = join_by(country== iso3))
+# 
+# plot_long <- plot_long %>% 
+#   st_as_sf() %>% 
+#   drop_na()
+```
+
